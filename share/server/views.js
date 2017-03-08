@@ -51,7 +51,7 @@ var Views = (function() {
           throw(["error", "reduce_overflow_error", log_message]);
       };
     } else {
-      print("[true," + reduce_line + "]");
+      respond([true, reductions]);
     }
   };
 
@@ -132,7 +132,7 @@ var Views = (function() {
           buf.push([]);
         }
       });
-      print(JSON.stringify(buf));
+      respond(buf);
     }
   };
 })();

@@ -27,6 +27,7 @@ main([]) ->
                "share/server/util.js",
                "share/server/validate.js",
                "share/server/views.js",
+               "share/server/loop-base.js",
                "share/server/loop.js"],
 
     CoffeeFiles = ["share/server/json2.js",

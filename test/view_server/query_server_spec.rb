@@ -27,24 +27,28 @@ puts "Running query server specs for #{LANGUAGE} query server"
 
 require 'rspec'
 require 'json'
+require 'bert'
 
 class OSProcessRunner
   def self.run
     trace = ENV["QS_TRACE"] || false
     puts "launching #{run_command}" if trace
+    bert = run_command.include? "main-async"
+    
     if block_given?
       IO.popen(run_command, "r+") do |io|
-        qs = QueryServerRunner.new(io, trace)
+        qs = QueryServerRunner.new(io, bert, trace)
         yield qs
       end
     else
       io = IO.popen(run_command, "r+")
-      QueryServerRunner.new(io, trace)
+      QueryServerRunner.new(io, bert, trace)
     end
   end
-  def initialize io, trace = false
+  def initialize io, bert, trace = false
     @qsio = io
     @trace = trace
+    @bert = bert
   end
   def close
     @qsio.close
@@ -76,13 +80,29 @@ class OSProcessRunner
     jsgets
   end
   def rrun json
-    line = json.to_json
-    puts "run: #{line}" if @trace
-    @qsio.puts line
+    if @bert
+      line = BERT::encode(json)
+      puts "run bert: #{line}" if @trace
+      @qsio.print line
+    else
+      line = json.to_json
+      puts "run: #{line}" if @trace
+      @qsio.puts line
+    end
+    
+    @qsio.flush
   end
   def rgets
-    resp = @qsio.gets
-    puts "got: #{resp}"  if @trace
+    if @bert 
+      length = @qsio.readpartial(4)
+      l = length.unpack('L>').first
+      resp = @qsio.readpartial(l)
+      puts "got bert length: #{l}"  if @trace
+      puts "got bert: #{resp}"  if @trace
+    else
+      resp = @qsio.gets
+      puts "got: #{resp}"  if @trace
+    end
     resp
   end
   def jsgets
@@ -91,7 +111,11 @@ class OSProcessRunner
     # puts "err: #{err}" if err
     if resp
       begin
-        rj = JSON.parse("[#{resp.chomp}]")[0]
+        if @bert
+          rj = BERT::decode(resp.chomp)
+        else
+          rj = JSON.parse("[#{resp.chomp}]")[0]
+        end
       rescue JSON::ParserError
         puts "JSON ERROR (dump under trace mode)"
         # puts resp.chomp
@@ -116,7 +140,9 @@ end
 class QueryServerRunner < OSProcessRunner
 
   COMMANDS = {
-    "js" => "#{COUCH_ROOT}/bin/couchjs #{COUCH_ROOT}/share/server/main.js",
+    "js-couchjs" => "#{COUCH_ROOT}/bin/couchjs #{COUCH_ROOT}/share/server/main.js",
+    "js-chakra" => "#{COUCH_ROOT}/../couch-chakra/bin/couch-chakra -L #{COUCH_ROOT}/share/server/main.js",
+    "js" => "#{COUCH_ROOT}/../couch-chakra/bin/couch-chakra -L -d -e #{COUCH_ROOT}/share/server/main-async.js",
     "erlang" => "#{COUCH_ROOT}/test/view_server/run_native_process.es"
   }
 

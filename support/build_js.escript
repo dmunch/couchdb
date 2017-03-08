@@ -29,6 +29,16 @@ main([]) ->
                "share/server/views.js",
                "share/server/loop-base.js",
                "share/server/loop.js"],
+    
+    JsAsyncFiles = ["share/server/filter.js",
+               "share/server/mimeparse.js",
+               "share/server/render.js",
+               "share/server/state.js",
+               "share/server/util.js",
+               "share/server/validate.js",
+               "share/server/views.js",
+               "share/server/loop-base.js",
+               "share/server/loop-async.js"],
 
     CoffeeFiles = ["share/server/json2.js",
                    "share/server/filter.js",
@@ -41,10 +51,8 @@ main([]) ->
                    "share/server/coffee-script.js",
                    "share/server/loop.js"],
 
-    Pre = "(function () {\n",
-    Post = "})();\n",
 
-    Concat = fun(Files, To) ->
+    Concat = fun(Files, To, Pre, Post) ->
             AccBin = lists:foldl(fun(Path, Acc) ->
                             {ok, Bin} = file:read_file(Path),
                             [Bin | Acc]
@@ -52,7 +60,11 @@ main([]) ->
             FinalBin = iolist_to_binary(Pre ++ lists:reverse(AccBin) ++ Post),
             file:write_file(To, FinalBin)
     end,
+    
+    Pre = "(function () {\n",
+    Post = "})();\n",
 
-    ok = Concat(JsFiles, "share/server/main.js"),
-    ok = Concat(CoffeeFiles, "share/server/main-coffee.js"),
+    ok = Concat(JsFiles, "share/server/main.js", Pre, Post),
+    ok = Concat(JsAsyncFiles, "share/server/main-async.js", "", ""),
+    ok = Concat(CoffeeFiles, "share/server/main-coffee.js", Pre, Post),
     ok.

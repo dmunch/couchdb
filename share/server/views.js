@@ -120,7 +120,7 @@ var Views = (function() {
       Couch.recursivelySeal(doc);
 
       var buf = [];
-      for each (fun in State.funs) {
+      State.funs.forEach(function(fun) {
         map_results = [];
         try {
           fun(doc);
@@ -131,7 +131,7 @@ var Views = (function() {
           // did not emit anything, by buffering an empty array.
           buf.push([]);
         }
-      }
+      });
       print(JSON.stringify(buf));
     }
   };

@@ -23,21 +23,26 @@ var AsyncLoop = async function() {
   };
 
   var decoder = new couch_chakra.Ernie.Decoder(new TextDecoder());
-  while(true) {
-    let chunk = await read_async();
-    var ua = new Uint8Array(chunk);
+  
+  try {
+    while(true) {
+      let chunk = await read_async();
+      var ua = new Uint8Array(chunk);
 
-    decoder.nextBuffer(ua);
-    let hasData = true;
-    do {
+      decoder.nextBuffer(ua);
+      let hasData = true;
+      do {
         let result = decoder.decodeNext() 
-        hasData = result.value;
-        
+          hasData = result.value;
+
         if(result.value) {
-          print_e("got data" + result.value);
           tryDispatch(result.value, dispatch);
         }
-    } while(hasData);
+      } while(hasData);
+    }
+  } catch(e) {
+    print_e("exception");
+    exit_uv();
   }
 };
 

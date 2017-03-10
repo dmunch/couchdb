@@ -184,6 +184,19 @@ functions = {
         end.
     ERLANG
   },
+  "emit-once-unicode" => {
+    "js" => <<-JS,
+      function(doc){
+        emit("служби України у",doc.a)
+      }
+      JS
+    "erlang" => <<-ERLANG
+        fun({Doc}) ->
+            A = couch_util:get_value(<<"a">>, Doc, null),
+            Emit(<<"служби України у">>, A)
+        end.
+    ERLANG
+  },
   "reduce-values-length" => {
     "js" => %{function(keys, values, rereduce) { return values.length; }},
     "erlang" => %{fun(Keys, Values, ReReduce) -> length(Values) end.}
@@ -568,6 +581,17 @@ describe "query server normal case" do
     rows[0][1].should == ["bar", "b"]
     rows[1][0].should == ["baz", "b"]
   end
+  
+  it "should run map funs with unicode results" do
+    @qs.reset!
+    @qs.run(["add_fun", functions["emit-once-unicode"][LANGUAGE]]).should == true
+    rows = @qs.run(["map_doc", {:a => "b"}])
+    #The BERT decoder we use doesn't handle UTF-8 really well, 
+    #the importing thing here is to test that the view-server doesn't have 
+    #an issue with UTF-8, so it's fine to just compare the bytes here 
+    rows[0][0][0].bytes.should == "служби України у".bytes
+  end
+  
   describe "reduce" do
     before(:all) do
       @fun = functions["reduce-values-length"][LANGUAGE]

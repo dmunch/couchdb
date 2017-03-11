@@ -19,7 +19,7 @@
 
 
 main([]) ->
-    JsFiles = ["share/server/json2.js",
+    JsBaseFiles = ["share/server/json2.js",
                "share/server/filter.js",
                "share/server/mimeparse.js",
                "share/server/render.js",
@@ -27,18 +27,11 @@ main([]) ->
                "share/server/util.js",
                "share/server/validate.js",
                "share/server/views.js",
-               "share/server/loop-base.js",
-               "share/server/loop.js"],
-    
-    JsAsyncFiles = ["share/server/filter.js",
-               "share/server/mimeparse.js",
-               "share/server/render.js",
-               "share/server/state.js",
-               "share/server/util.js",
-               "share/server/validate.js",
-               "share/server/views.js",
-               "share/server/loop-base.js",
-               "share/server/loop-async.js"],
+               "share/server/loop-base.js"],
+   
+    JsFiles = JsBaseFiles ++ ["share/server/loop.js"],
+    JsAsyncFiles = JsBaseFiles ++ ["share/server/loop-async.js"],
+    JsBertFiles = JsBaseFiles ++ ["share/server/loop-bert.js"],
 
     CoffeeFiles = ["share/server/json2.js",
                    "share/server/filter.js",
@@ -49,6 +42,7 @@ main([]) ->
                    "share/server/validate.js",
                    "share/server/views.js",
                    "share/server/coffee-script.js",
+                   "share/server/loop-base.js",
                    "share/server/loop.js"],
 
 
@@ -66,5 +60,6 @@ main([]) ->
 
     ok = Concat(JsFiles, "share/server/main.js", Pre, Post),
     ok = Concat(JsAsyncFiles, "share/server/main-async.js", "", ""),
+    ok = Concat(JsBertFiles, "share/server/main-bert.js", "", ""),
     ok = Concat(CoffeeFiles, "share/server/main-coffee.js", Pre, Post),
     ok.

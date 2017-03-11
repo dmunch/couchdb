@@ -10,7 +10,7 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-var AsyncLoop = async function() {
+var BertLoop = function() {
   var line, cmd, cmdkey, dispatch = {
     "ddoc"     : DDoc.ddoc,
     // "view"    : Views.handler,
@@ -26,31 +26,33 @@ var AsyncLoop = async function() {
   
   try {
     while(true) {
-      let chunk = await read_async();
-      var ua = new Uint8Array(chunk);
+      let packetSizeBuffer = read(4);
+      if(packetSizeBuffer.length < 4) {
+        print_e("error reading length header.");
+        exit(0);
+      }
 
-      //skip length
-      ua = ua.subarray(4, ua.length);
+      var view = new DataView(packetSizeBuffer);
+      var length = view.getUint32(0);
+    
+      let packet = read(length);
+      if(packet.length < length) {
+        print_e("error reading packet.");
+        exit(0);
+      }
 
-      decoder.nextBuffer(ua);
-      let hasData = true;
-      do {
-        let result = decoder.decodeNext() 
-          hasData = result.value;
+      var packetTyped = new Uint8Array(packet);
 
-        if(result.value) {
-          tryDispatch(result.value, dispatch);
-        }
-      } while(hasData);
+      let result = decoder.decode(packetTyped);
+      tryDispatch(result, dispatch);
     }
   } catch(e) {
-    print_e("exception");
-    exit_uv();
+    print_e("exception: " + e);
+    exit(0);
   }
 };
 
 
-var oldprint = print;
 this.print = function(a) {
   var encoder = new couch_chakra.Ernie.Encoder(new TextEncoder());
 
@@ -63,8 +65,8 @@ this.print = function(a) {
   let lView = new DataView(length.buffer);
   lView.setUint32(0, encoded.length);
 
-  oldprint(length);
-  oldprint(encoded);
+  write(length);
+  write(encoded);
 }
 
 this.respond = function(obj) {
@@ -75,4 +77,4 @@ this.respond = function(obj) {
   }
 };
 
-AsyncLoop();
+BertLoop();

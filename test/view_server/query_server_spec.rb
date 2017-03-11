@@ -28,12 +28,18 @@ puts "Running query server specs for #{LANGUAGE} query server"
 require 'rspec'
 require 'json'
 require 'bert'
+require 'bindata'
+
+class BertPacket < BinData::Record
+  uint32le  :len, :value => lambda { data.length } 
+  string :data, :read_length => :len
+end
 
 class OSProcessRunner
   def self.run
     trace = ENV["QS_TRACE"] || false
     puts "launching #{run_command}" if trace
-    bert = run_command.include? "main-async"
+    bert = run_command.include? "main-bert"
     
     if block_given?
       IO.popen(run_command, "r+") do |io|
@@ -81,9 +87,10 @@ class OSProcessRunner
   end
   def rrun json
     if @bert
-      line = BERT::encode(json)
-      puts "run bert: #{line}" if @trace
-      @qsio.print line
+      packet = BertPacket.new
+      packet.data = BERT::encode(json)
+      puts "run bert: #{packet.data}" if @trace
+      packet.write(@qsio)
     else
       line = json.to_json
       puts "run: #{line}" if @trace
@@ -143,6 +150,7 @@ class QueryServerRunner < OSProcessRunner
     "js-couchjs" => "#{COUCH_ROOT}/bin/couchjs #{COUCH_ROOT}/share/server/main.js",
     "js-chakra" => "#{COUCH_ROOT}/../couch-chakra/bin/couch-chakra -L #{COUCH_ROOT}/share/server/main.js",
     "js" => "#{COUCH_ROOT}/../couch-chakra/bin/couch-chakra -L -d -e #{COUCH_ROOT}/share/server/main-async.js",
+    "js-bert" => "#{COUCH_ROOT}/../couch-chakra/bin/couch-chakra -L -d #{COUCH_ROOT}/share/server/main-bert.js",
     "erlang" => "#{COUCH_ROOT}/test/view_server/run_native_process.es"
   }
 
